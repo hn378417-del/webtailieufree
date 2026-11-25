@@ -545,6 +545,8 @@
 <body>
   <!-- Lớp hiệu ứng lễ hội rơi lắc lư (#10) -->
   <div id="festivalCanvas"></div>
+  <!-- Trình phát nhạc nền YouTube ẩn -->
+  <div id="ytMusicPlayer" style="position:fixed; width:1px; height:1px; opacity:0.01; pointer-events:none; bottom:0; left:0;"></div>
 
   <!-- Thanh điều hướng -->
   <nav>
@@ -852,38 +854,51 @@
       }
     }
 
-    // Âm thanh nền thư giãn (Tiếng mưa/sóng nhẹ tổng hợp bằng Web Audio API)
-    let audioCtx = null;
+   // =========================================================================
+    // ÂM THANH NỀN YOUTUBE (BÀI NHẠC BẠN CHỌN: LYigiwbaX_U)
+    // =========================================================================
+    let ytPlayer = null;
     let isSoundPlaying = false;
-    let noiseNode = null;
+
+    // Tải thư viện YouTube IFrame API
+    const ytTag = document.createElement('script');
+    ytTag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(ytTag);
+
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('ytMusicPlayer', {
+        height: '1',
+        width: '1',
+        videoId: 'LYigiwbaX_U',
+        playerVars: {
+          autoplay: 0,
+          loop: 1,
+          playlist: 'LYigiwbaX_U',
+          controls: 0
+        },
+        events: {
+          onReady: (event) => {
+            event.target.setVolume(45); // Âm lượng vừa phải để học bài
+          }
+        }
+      });
+    }
 
     function toggleAmbientSound() {
       const btn = document.getElementById('soundToggleBtn');
-      if (!isSoundPlaying) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const bufferSize = 2 * audioCtx.sampleRate;
-        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        let lastOut = 0.0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          output[i] = (lastOut + (0.02 * white)) / 1.02;
-          lastOut = output[i];
-          output[i] *= 0.12; // Âm lượng êm dịu để học bài
-        }
-        noiseNode = audioCtx.createBufferSource();
-        noiseNode.buffer = noiseBuffer;
-        noiseNode.loop = true;
-        noiseNode.connect(audioCtx.destination);
-        noiseNode.start(0);
+      if (!ytPlayer || typeof ytPlayer.playVideo !== 'function') {
+        showToast("⏳ Trình phát nhạc đang khởi tạo, bạn bấm lại sau 1 giây nhé!");
+        return;
+      }
 
+      if (!isSoundPlaying) {
+        ytPlayer.playVideo();
         isSoundPlaying = true;
-        btn.textContent = "🔊 Đang bật nhạc nền";
+        btn.textContent = "🔊 Đang phát nhạc nền";
         btn.style.borderColor = "var(--primary)";
-        showToast("🎧 Đã bật âm thanh nền thư giãn tập trung học tập");
+        showToast("🎵 Đang phát bản nhạc nền bạn đã chọn!");
       } else {
-        if (noiseNode) noiseNode.stop();
-        if (audioCtx) audioCtx.close();
+        ytPlayer.pauseVideo();
         isSoundPlaying = false;
         btn.textContent = "🔇 Nhạc nền chill";
         btn.style.borderColor = "var(--border)";

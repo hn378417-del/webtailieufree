@@ -1249,7 +1249,7 @@
       christmas: ['❄️', '🎄', '⛄', '✨'], tet: ['🌸', '🌼', '🧧', '✨']
     };
 
-    function setFestivalTheme(theme, save = false) {
+    async function setFestivalTheme(theme, save = false) {
       document.documentElement.setAttribute('data-festival', theme);
       document.querySelectorAll('.theme-chip').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.fest === theme);
@@ -1268,11 +1268,19 @@
         canvas.appendChild(el);
       }
       if (save) {
-        localStorage.setItem('edu_festival_theme', theme);
+        await sb.from('site_settings').upsert([{ key: 'festival_theme', value: theme }]);
         writeLog(`Admin đã đổi giao diện sự kiện toàn trang sang: ${theme.toUpperCase()}.`);
-        showToast("🎨 Đã cập nhật phong cách sự kiện!");
+        showToast("🎨 Đã đồng bộ giao diện sự kiện cho toàn bộ thiết bị!");
       }
     }
+
+    sb.channel('theme-realtime-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, (payload) => {
+        if (payload.new && payload.new.key === 'festival_theme') {
+          setFestivalTheme(payload.new.value, false);
+        }
+      })
+      .subscribe();
 
     let ytPlayer = null;
     let isSoundPlaying = false;
@@ -2090,8 +2098,8 @@
 
     // KHỞI CHẠY
     (async () => {
-      const savedTheme = localStorage.getItem('edu_festival_theme') || 'default';
-      setFestivalTheme(savedTheme, false);
+      const { data: themeRow } = await sb.from('site_settings').select('value').eq('key', 'festival_theme').maybeSingle();
+      setFestivalTheme(themeRow?.value || 'default', false);
       await checkUserSession();
       await fetchAllData();
     })();

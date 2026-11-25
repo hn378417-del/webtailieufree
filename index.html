@@ -1352,39 +1352,49 @@
       if (box.classList.contains('open')) fetchChatMessages();
     }
 
+   // PHÒNG CHAT HỌC TẬP REALTIME (CÓ THU HỒI & QUYỀN ADMIN XÓA)
     async function fetchChatMessages() {
-      const { data } = await sb.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(50);
-      renderChatMessages(data || []);
-    }
+      const { data } = await sb.from('chat_messages').select('*').order('created_at', { ascending: true }).limit(60);
+      const box = document.getElementById('chatMessages');
+      if (!data || !box) return;
+      box.innerHTML = data.map(m => {
+        const isMe = currentUser && (
+          (m.sender_email && m.sender_email === currentUser.email) ||
+          (!m.sender_email && m.sender_name === currentUser.name)
+        );
+        const isAdmin = currentUser && currentUser.role === 'admin';
+        const isRecalled = m.content === '__RECALLED__';
+        const badge = m.sender_role === 'admin' ? '🛡️ Admin' : (m.sender_role === 'teacher' ? '👨‍🏫 GV' : '🎓 HS');
 
-    function renderChatMessages(msgs) {
-      const box = document.getElementById('chatMessagesBox');
-      if (!box) return;
-      if (msgs.length === 0) {
-        box.innerHTML = `<p style="text-align:center; color:var(--muted); font-size:12.5px; margin-top:20px;">Chưa có tin nhắn nào. Hãy gửi lời chào đầu tiên!</p>`;
-        return;
-      }
-      box.innerHTML = msgs.map(m => {
-        const isMine = currentUser && m.sender_name === currentUser.name;
-        const roleTag = m.sender_role === 'admin' ? '🛡️ Admin' : (m.sender_role === 'teacher' ? '👨‍🏫 GV' : '🎒 HS');
+        let actionBtns = '';
+        if (!isRecalled) {
+          if (isMe) {
+            actionBtns += `<button onclick="recallChatMessage('${m.id}')" title="Thu hồi tin nhắn" style="background:none; border:none; color:inherit; opacity:0.75; cursor:pointer; font-size:11px; margin-left:6px; text-decoration:underline;">Thu hồi</button>`;
+          }
+          if (isAdmin && !isMe) {
+            actionBtns += `<button onclick="adminDeleteChatMessage('${m.id}', '${(m.sender_name || '').replace(/'/g, '')}')" title="Admin gỡ tin nhắn vi phạm" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:11px; margin-left:6px; font-weight:700;">🗑️ Gỡ</button>`;
+          }
+        }
+
+        const displayContent = isRecalled
+          ? `<span style="font-style:italic; opacity:0.7;">🚫 Tin nhắn đã được thu hồi</span>`
+          : escapeHtml(m.content);
+
         return `
-          <div class="chat-msg ${isMine ? 'mine' : ''}">
-            <div class="chat-meta">${roleTag} • ${m.sender_name}</div>
-            <div>${m.content}</div>
+          <div class="chat-msg ${isMe ? 'me' : 'other'}">
+            <div class="chat-meta" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <span>${badge} • ${escapeHtml(m.sender_name)}</span>
+              <span>${actionBtns}</span>
+            </div>
+            <div>${displayContent}</div>
           </div>
         `;
       }).join('');
       box.scrollTop = box.scrollHeight;
     }
 
-    async function sendChatMessage(e) {
-      e.preventDefault();
-      if (!currentUser) {
-        showToast("⚠️ Vui lòng đăng nhập để tham gia phòng chat!");
-        openAuthModal(false);
-        return;
-      }
-
+    async function sendChatMessage() {
+      if (!currentUser) { openAuthModal('login'); return; }
       const banInfo = await checkIfUserIsBanned(currentUser.email);
       if (banInfo) {
         showToast(`⛔ Bạn đang bị khóa chat đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
@@ -1398,14 +1408,30 @@
       input.value = '';
       await sb.from('chat_messages').insert([{
         sender_name: currentUser.name,
+        sender_email: currentUser.email,
         sender_role: currentUser.role,
         content
       }]);
       fetchChatMessages();
     }
 
+    async function recallChatMessage(msgId) {
+      if (!confirm("Bạn muốn thu hồi tin nhắn này?")) return;
+      await sb.from('chat_messages').update({ content: '__RECALLED__' }).eq('id', msgId);
+      fetchChatMessages();
+    }
+
+    async function adminDeleteChatMessage(msgId, senderName) {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      if (!confirm(`Xóa vĩnh viễn tin nhắn vi phạm của "${senderName}"?`)) return;
+      await sb.from('chat_messages').delete().eq('id', msgId);
+      writeLog(`Admin đã gỡ một tin nhắn vi phạm của ${senderName} trong phòng chat.`);
+      showToast("🗑️ Đã gỡ tin nhắn vi phạm!");
+      fetchChatMessages();
+    }
+
     sb.channel('chat-realtime-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => {
         fetchChatMessages();
       })
       .subscribe();

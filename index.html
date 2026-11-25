@@ -1249,7 +1249,7 @@
       christmas: ['❄️', '🎄', '⛄', '✨'], tet: ['🌸', '🌼', '🧧', '✨']
     };
 
-    async const themeChannel = sb.channel('edushare-global-theme');
+    const themeChannel = sb.channel('edushare-global-theme');
 
     themeChannel
       .on('broadcast', { event: 'change-theme' }, (payload) => {

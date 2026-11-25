@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #F8FAFC;
@@ -110,14 +111,15 @@
     .btn-outline:hover:not(:disabled) { background: var(--bg); }
     .btn-success { background: var(--success); color: #FFF; }
     .btn-danger { background: var(--danger); color: #FFF; }
-    .btn-sm { padding: 6px 11px; font-size: 12.5px; }
+    .btn-warning { background: var(--warning); color: #FFF; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
 
     /* Container */
     .container {
       max-width: 1240px; margin: 0 auto; padding: 26px 24px; position: relative; z-index: 10;
     }
 
-    /* Countdown Banner (#11) */
+    /* Countdown Banner */
     .exam-banner {
       background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--primary);
       border-radius: 16px; padding: 14px 22px; margin-bottom: 24px;
@@ -133,7 +135,7 @@
     .cd-unit strong { display: block; font-size: 17px; font-weight: 800; line-height: 1.1; }
     .cd-unit span { font-size: 11px; font-weight: 600; }
 
-    /* Hero + Leaderboard Split (#12) */
+    /* Hero + Leaderboard Split */
     .top-dashboard-grid {
       display: grid; grid-template-columns: 1.45fr 0.85fr; gap: 22px; margin-bottom: 28px;
     }
@@ -151,7 +153,7 @@
     .stat-box strong { display: block; font-size: 22px; }
     .stat-box span { font-size: 12px; color: rgba(255,255,255,0.9); }
 
-    /* Leaderboard Card (#12) */
+    /* Leaderboard Card */
     .leaderboard-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 24px;
       padding: 22px; box-shadow: var(--shadow); display: flex; flex-direction: column;
@@ -196,6 +198,21 @@
     }
     .theme-chip.active { background: var(--primary); color: #FFF; border-color: var(--primary); }
 
+    /* Admin Tabs */
+    .admin-tabs {
+      display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;
+      border-bottom: 1px solid var(--border); padding-bottom: 12px;
+    }
+    .admin-tab-btn {
+      padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg); font-size: 13px; font-weight: 700; cursor: pointer; color: var(--text);
+    }
+    .admin-tab-btn.active {
+      background: var(--secondary); color: #FFF; border-color: var(--secondary);
+    }
+    .admin-section { display: none; }
+    .admin-section.active { display: block; }
+
     .admin-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; }
     .pending-item {
       border: 1px solid #FDE68A; border-radius: 14px; padding: 14px; margin-bottom: 12px;
@@ -207,10 +224,35 @@
 
     .log-box {
       background: #0F172A; color: #E2E8F0; border-radius: 14px; padding: 16px;
-      max-height: 280px; overflow-y: auto; font-size: 12.5px;
+      max-height: 290px; overflow-y: auto; font-size: 12.5px;
     }
     .log-entry { padding: 7px 0; border-bottom: 1px solid #1E293B; display: flex; gap: 8px; }
     .log-time { color: #38BDF8; font-weight: 600; flex-shrink: 0; }
+
+    /* Bảng quản lý thành viên & Ban */
+    .table-wrap { overflow-x: auto; }
+    .user-table {
+      width: 100%; border-collapse: collapse; font-size: 13.5px; text-align: left;
+    }
+    .user-table th {
+      background: var(--bg); padding: 10px 12px; border-bottom: 2px solid var(--border);
+      font-weight: 700; color: var(--secondary);
+    }
+    .user-table td {
+      padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle;
+    }
+    .badge-banned {
+      background: #FEE2E2; color: #DC2626; padding: 3px 8px; border-radius: 6px;
+      font-size: 11.5px; font-weight: 700; display: inline-block;
+    }
+    .badge-active {
+      background: #ECFDF5; color: #059669; padding: 3px 8px; border-radius: 6px;
+      font-size: 11.5px; font-weight: 700; display: inline-block;
+    }
+    .chart-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 16px;
+      padding: 18px; height: 320px; position: relative;
+    }
 
     /* Toolbar & Cards */
     .toolbar {
@@ -295,7 +337,7 @@
       border: 1px solid var(--border); font-family: inherit; font-size: 13px; resize: none;
     }
 
-    /* Realtime Chat Widget (#3) */
+    /* Realtime Chat Widget */
     .chat-fab {
       position: fixed; bottom: 24px; right: 24px; z-index: 500;
       background: var(--primary); color: #FFF; border: none; border-radius: 999px;
@@ -391,7 +433,7 @@
   </nav>
 
   <div class="container">
-    <!-- Đồng hồ đếm ngược kỳ thi THPTQG (#11) -->
+    <!-- Đồng hồ đếm ngược kỳ thi THPTQG -->
     <div class="exam-banner">
       <div class="exam-label" id="examTitleText">🎯 Đếm ngược Kỳ thi Tốt nghiệp THPT Quốc Gia:</div>
       <div class="countdown-boxes">
@@ -402,7 +444,7 @@
       </div>
     </div>
 
-    <!-- Banner + Bảng xếp hạng chăm học (#12) -->
+    <!-- Banner + Bảng xếp hạng chăm học -->
     <div class="top-dashboard-grid">
       <div class="hero">
         <div>
@@ -416,7 +458,6 @@
         </div>
       </div>
 
-      <!-- Bảng xếp hạng thành viên xem lâu nhất (#12) -->
       <div class="leaderboard-card">
         <div class="lb-header">
           <h3>🏆 Bảng Vàng Chăm Học</h3>
@@ -428,14 +469,14 @@
       </div>
     </div>
 
-    <!-- Bảng điều khiển Admin -->
+    <!-- BẢNG ĐIỀU KHIỂN ADMIN NÂNG CAO -->
     <section class="panel" id="adminPanel" style="display: none; border-color: #FECACA;">
       <div class="panel-header">
         <div>
-          <h2>🛡️ Bảng Điều Khiển Admin — Kiểm Duyệt & Điều Phối Sự Kiện</h2>
-          <p style="font-size:12.5px; color:var(--muted);">Tài khoản quản trị tối cao: khoa32645@gmail.com</p>
+          <h2>🛡️ Trung Tâm Quản Trị Admin Tối Cao</h2>
+          <p style="font-size:12.5px; color:var(--muted);">Quản lý duyệt bài, kiểm soát thành viên (Ban có thời hạn) & phân tích xu hướng video</p>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="fetchAllData()">🔄 Làm mới dữ liệu</button>
+        <button class="btn btn-outline btn-sm" onclick="fetchAllData()">🔄 Làm mới toàn bộ</button>
       </div>
 
       <div class="theme-switcher-bar">
@@ -446,14 +487,62 @@
         <button class="theme-chip" data-fest="tet" onclick="setFestivalTheme('tet', true)">🌸 Tết Nguyên Đán</button>
       </div>
 
-      <div class="admin-grid">
-        <div>
-          <h3 style="font-size: 15px; margin-bottom: 12px;">⏳ Bài gửi từ giáo viên đang chờ duyệt (<span id="pendingCountText">0</span>)</h3>
-          <div id="pendingList"></div>
+      <!-- Các thẻ chức năng quản trị -->
+      <div class="admin-tabs">
+        <button class="admin-tab-btn active" onclick="switchAdminTab('tabApproval', this)">📋 Duyệt bài & Nhật ký (<span id="pendingCountTab">0</span>)</button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('tabUsers', this)">👥 Thành viên & Kỷ luật BAN (<span id="userCountTab">0</span>)</button>
+        <button class="admin-tab-btn" onclick="switchAdminTab('tabAnalytics', this)">📊 Biểu đồ Video & Học liệu Hot</button>
+      </div>
+
+      <!-- Tab 1: Duyệt bài & Nhật ký -->
+      <div class="admin-section active" id="tabApproval">
+        <div class="admin-grid">
+          <div>
+            <h3 style="font-size: 15px; margin-bottom: 12px;">⏳ Bài gửi từ giáo viên đang chờ duyệt (<span id="pendingCountText">0</span>)</h3>
+            <div id="pendingList"></div>
+          </div>
+          <div>
+            <h3 style="font-size: 15px; margin-bottom: 12px;">📡 Nhật ký hoạt động trực tiếp trên Cloud</h3>
+            <div class="log-box" id="activityLog"></div>
+          </div>
         </div>
-        <div>
-          <h3 style="font-size: 15px; margin-bottom: 12px;">📡 Nhật ký hoạt động trực tiếp trên Cloud</h3>
-          <div class="log-box" id="activityLog"></div>
+      </div>
+
+      <!-- Tab 2: Danh sách tài khoản & Chức năng BAN -->
+      <div class="admin-section" id="tabUsers">
+        <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">
+          Theo dõi tất cả tài khoản đã tạo, tổng số phút học tập để phát hiện học sinh lười học hoặc vi phạm nội quy phòng chat để tiến hành khóa (Ban) tạm thời.
+        </p>
+        <div class="table-wrap">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th>Thành viên</th>
+                <th>Email</th>
+                <th>Vai trò</th>
+                <th>Thời gian học</th>
+                <th>Trạng thái</th>
+                <th>Hành động kỷ luật</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody">
+              <tr><td colspan="6" style="text-align:center; color:var(--muted);">Đang tải danh sách thành viên...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab 3: Biểu đồ Video & Học liệu lượt xem cao -->
+      <div class="admin-section" id="tabAnalytics">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <h3 style="font-size:15px;">🔥 Top Video Bài Giảng & Học Liệu Có Lượt Xem Cao Nhất</h3>
+          <select id="chartFilterType" onchange="renderPopularityChart()" style="padding:6px 10px; border-radius:8px; border:1px solid var(--border); font-size:12.5px;">
+            <option value="video">Chỉ thống kê Video bài giảng</option>
+            <option value="all">Tất cả học liệu (Video + Tài liệu)</option>
+          </select>
+        </div>
+        <div class="chart-box">
+          <canvas id="popularityChart"></canvas>
         </div>
       </div>
     </section>
@@ -485,7 +574,7 @@
     </div>
   </div>
 
-  <!-- NÚT & KHUNG CHAT THẢO LUẬN REALTIME (#3) -->
+  <!-- NÚT & KHUNG CHAT THẢO LUẬN REALTIME -->
   <button class="chat-fab" onclick="toggleChatDrawer()">💬 Thảo luận nhóm</button>
   <div class="chat-drawer" id="chatDrawer">
     <div class="chat-header">
@@ -499,7 +588,43 @@
     </form>
   </div>
 
-  <!-- MODAL XEM VIDEO + LƯU PHÚT XEM (#4) + TÀI LIỆU NỔI (#8) + NGƯỜI ĐANG XEM CÙNG (#6) -->
+  <!-- MODAL BAN THÀNH VIÊN CÓ THỜI HẠN -->
+  <div class="modal-bg" id="banModal" onclick="closeModalOnBg(event, 'banModal')">
+    <div class="modal">
+      <h3>🔨 Kỷ Luật & Khóa Tài Khoản (BAN)</h3>
+      <p class="sub" id="banTargetText">Áp dụng lệnh khóa tạm thời đối với thành viên</p>
+      <form onsubmit="handleBanSubmit(event)">
+        <input type="hidden" id="banTargetEmail" />
+        <input type="hidden" id="banTargetName" />
+        <div class="form-group">
+          <label>Thời hạn khóa (Ban)</label>
+          <select id="banDurationMinutes">
+            <option value="60">⏳ 1 giờ (Cảnh cáo nhẹ)</option>
+            <option value="1440">📅 24 giờ (1 ngày)</option>
+            <option value="4320">📅 3 ngày</option>
+            <option value="10080">📅 7 ngày (1 tuần)</option>
+            <option value="43200">📅 30 ngày (1 tháng)</option>
+            <option value="5256000">⛔ Vĩnh viễn (10 năm)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Lý do kỷ luật (sẽ hiển thị cho học sinh thấy)</label>
+          <select id="banReasonPreset" onchange="document.getElementById('banReasonText').value = this.value" style="margin-bottom:8px;">
+            <option value="Bình luận thiếu văn minh trong phòng chat học tập.">Bình luận thiếu văn minh trong phòng chat</option>
+            <option value="Có dấu hiệu lười học, không hoàn thành thời lượng bài giảng.">Lười học, không tích lũy thời gian xem bài</option>
+            <option value="Spam tin nhắn gây ảnh hưởng đến cộng đồng.">Spam tin nhắn gây loãng phòng học</option>
+          </select>
+          <input type="text" id="banReasonText" required value="Bình luận thiếu văn minh trong phòng chat học tập." />
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="btn btn-outline" style="flex:1; justify-content:center;" onclick="document.getElementById('banModal').classList.remove('open')">Hủy</button>
+          <button type="submit" class="btn btn-danger" style="flex:1; justify-content:center;">Xác nhận BAN</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL XEM VIDEO -->
   <div class="modal-bg" id="videoModal" onclick="closeModalOnBg(event, 'videoModal')">
     <div class="modal video-player-modal">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -538,7 +663,7 @@
     </div>
   </div>
 
-  <!-- MODAL CHỈNH SỬA TÀI LIỆU (#7 PHÂN QUYỀN) -->
+  <!-- MODAL CHỈNH SỬA TÀI LIỆU -->
   <div class="modal-bg" id="editModal" onclick="closeModalOnBg(event, 'editModal')">
     <div class="modal">
       <h3>✏️ Chỉnh Sửa Nội Dung Học Liệu</h3>
@@ -554,7 +679,7 @@
           <input type="text" id="editTitle" required />
         </div>
         <div class="form-group">
-          <label>Quyền trên tài liệu (#7)</label>
+          <label>Quyền trên tài liệu</label>
           <select id="editAccessMode">
             <option value="view_only">🔒 Chỉ xem & tải (Chỉ tác giả & Admin được sửa)</option>
             <option value="collab_edit">🤝 Cho phép giáo viên khác cùng chỉnh sửa</option>
@@ -633,7 +758,7 @@
           <input type="text" id="upTitle" required placeholder="VD: Chuyên đề Hàm số & Đề thi thử" />
         </div>
         <div class="form-group">
-          <label>Phân quyền trên tài liệu (#7)</label>
+          <label>Phân quyền trên tài liệu</label>
           <select id="upAccessMode">
             <option value="view_only">🔒 Học sinh chỉ xem & tải (Mặc định)</option>
             <option value="collab_edit">🤝 Cho phép giáo viên khác cùng chỉnh sửa</option>
@@ -670,21 +795,24 @@
     let currentUser = null;
     let materials = [];
     let logs = [];
+    let allUsers = [];
+    let leaderboardData = [];
     let isSignUpMode = false;
     let uploadMode = 'file';
     let currentFilter = 'all';
     let activeVideoId = null;
     let studyTimerInterval = null;
     let currentVideoSeconds = 0;
+    let popularityChartInstance = null;
 
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.textContent = msg;
       t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3200);
+      setTimeout(() => t.classList.remove('show'), 3600);
     }
 
-    // #11 ĐẾM NGƯỢC KỲ THI THPTQG
+    // ĐẾM NGƯỢC KỲ THI THPTQG
     function updateExamCountdown() {
       const now = new Date();
       let targetYear = now.getFullYear();
@@ -703,7 +831,7 @@
     setInterval(updateExamCountdown, 1000);
     updateExamCountdown();
 
-    // #10 SỰ KIỆN LỄ HỘI & NHẠC NỀN YOUTUBE
+    // SỰ KIỆN LỄ HỘI & NHẠC NỀN YOUTUBE
     const FESTIVAL_ICONS = {
       default: [], midautumn: ['🏮', '🌕', '🥮', '✨'],
       christmas: ['❄️', '🎄', '⛄', '✨'], tet: ['🌸', '🌼', '🧧', '✨']
@@ -767,7 +895,7 @@
       }
     }
 
-    // #6 HIỆN REALTIME NGƯỜI ĐANG ONLINE & ĐANG XEM CÙNG TÀI LIỆU
+    // REALTIME PRESENCE
     const visitorId = 'user_' + Math.random().toString(36).substring(2, 9);
     const presenceChannel = sb.channel('edushare-live-room', {
       config: { presence: { key: visitorId } }
@@ -790,7 +918,7 @@
         }
       });
 
-    // #3 PHÒNG CHAT REALTIME
+    // PHÒNG CHAT REALTIME (CÓ KIỂM TRA LỆNH BAN)
     function toggleChatDrawer() {
       const box = document.getElementById('chatDrawer');
       box.classList.toggle('open');
@@ -824,26 +952,39 @@
 
     async function sendChatMessage(e) {
       e.preventDefault();
+      if (!currentUser) {
+        showToast("⚠️ Vui lòng đăng nhập để tham gia phòng chat!");
+        openAuthModal(false);
+        return;
+      }
+
+      // Kiểm tra lại trạng thái Ban trực tiếp từ Cloud trước khi cho gửi tin nhắn
+      const banInfo = await checkIfUserIsBanned(currentUser.email);
+      if (banInfo) {
+        showToast(`⛔ Bạn đang bị khóa chat đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
+        return;
+      }
+
       const input = document.getElementById('chatInput');
       const content = input.value.trim();
       if (!content) return;
 
-      const senderName = currentUser ? currentUser.name : "Khách học tập";
-      const senderRole = currentUser ? currentUser.role : "student";
       input.value = '';
-
-      await sb.from('chat_messages').insert([{ sender_name: senderName, sender_role: senderRole, content }]);
+      await sb.from('chat_messages').insert([{
+        sender_name: currentUser.name,
+        sender_role: currentUser.role,
+        content
+      }]);
       fetchChatMessages();
     }
 
-    // Lắng nghe tin nhắn mới realtime
     sb.channel('chat-realtime-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () => {
         fetchChatMessages();
       })
       .subscribe();
 
-    // #12 BẢNG XẾP HẠNG VINH DANH & TÍCH LŨY PHÚT HỌC
+    // BẢNG XẾP HẠNG CHĂM HỌC
     async function fetchLeaderboard() {
       const { data } = await sb
         .from('study_leaderboard')
@@ -851,12 +992,13 @@
         .order('total_minutes', { ascending: false })
         .limit(10);
 
+      leaderboardData = data || [];
       const box = document.getElementById('leaderboardList');
-      if (!data || data.length === 0) {
+      if (leaderboardData.length === 0) {
         box.innerHTML = `<p style="font-size:13px; color:var(--muted); text-align:center; padding:18px;">Hãy đăng nhập và mở bài giảng để ghi tên lên Bảng Vàng!</p>`;
         return;
       }
-      box.innerHTML = data.map((u, idx) => {
+      box.innerHTML = leaderboardData.map((u, idx) => {
         const rankClass = idx === 0 ? 'top-1' : (idx === 1 ? 'top-2' : (idx === 2 ? 'top-3' : ''));
         const medal = idx === 0 ? '🥇 #1' : (idx === 1 ? '🥈 #2' : (idx === 2 ? '🥉 #3' : `#${idx + 1}`));
         return `
@@ -884,7 +1026,194 @@
         total_minutes: newTotal,
         updated_at: new Date().toISOString()
       }]);
-      fetchLeaderboard();
+      await fetchLeaderboard();
+      if (currentUser.role === 'admin') renderUsersTable();
+    }
+
+    // =========================================================================
+    // QUẢN LÝ TÀI KHOẢN, CHỨC NĂNG BAN CÓ THỜI HẠN & BIỂU ĐỒ ADMIN
+    // =========================================================================
+    function switchAdminTab(tabId, btn) {
+      document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+      if (tabId === 'tabAnalytics') renderPopularityChart();
+      if (tabId === 'tabUsers') fetchAllUsers();
+    }
+
+    async function syncUserToDirectory(email, fullName, role) {
+      await sb.from('app_users').upsert([{
+        email: email.toLowerCase(),
+        full_name: fullName,
+        role: role
+      }], { onConflict: 'email', ignoreDuplicates: true });
+    }
+
+    async function checkIfUserIsBanned(email) {
+      if (!email || email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return null;
+      const { data } = await sb.from('app_users').select('*').eq('email', email.toLowerCase()).maybeSingle();
+      if (data && data.banned_until) {
+        const banEnd = new Date(data.banned_until);
+        if (banEnd > new Date()) {
+          const untilStr = banEnd.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ngày ' + banEnd.toLocaleDateString('vi-VN');
+          return { untilStr, reason: data.ban_reason || "Vi phạm nội quy hệ thống." };
+        }
+      }
+      return null;
+    }
+
+    async function fetchAllUsers() {
+      const { data } = await sb.from('app_users').select('*').order('created_at', { ascending: false });
+      allUsers = data || [];
+      document.getElementById('userCountTab').textContent = allUsers.length;
+      renderUsersTable();
+    }
+
+    function renderUsersTable() {
+      const tbody = document.getElementById('usersTableBody');
+      if (!tbody) return;
+      if (allUsers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted);">Chưa có thành viên nào được ghi nhận.</td></tr>`;
+        return;
+      }
+
+      const now = new Date();
+      tbody.innerHTML = allUsers.map(u => {
+        const studyRec = leaderboardData.find(l => l.email === u.email);
+        const mins = studyRec ? studyRec.total_minutes : 0;
+        const isBanned = u.banned_until && new Date(u.banned_until) > now;
+        const isMainAdmin = u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+        const roleLabel = u.role === 'admin' ? '🛡️ Admin' : (u.role === 'teacher' ? '👨‍🏫 Giáo viên' : '🎒 Học sinh');
+        let statusHtml = `<span class="badge-active">● Hoạt động</span>`;
+        if (isBanned) {
+          const endStr = new Date(u.banned_until).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+          statusHtml = `<span class="badge-banned">⛔ Bị khóa đến ${endStr}</span><div style="font-size:11px; color:var(--danger); margin-top:2px;">${u.ban_reason || ''}</div>`;
+        }
+
+        let actionHtml = `<span style="font-size:12px; color:var(--muted);">Quản trị viên</span>`;
+        if (!isMainAdmin) {
+          actionHtml = isBanned
+            ? `<button class="btn btn-success btn-sm" onclick="unbanUser('${u.email}', '${u.full_name}')">🔓 Gỡ Ban</button>`
+            : `<button class="btn btn-danger btn-sm" onclick="openBanModal('${u.email}', '${u.full_name}')">🔨 Ban</button>`;
+        }
+
+        return `
+          <tr>
+            <td><strong>${u.full_name}</strong></td>
+            <td>${u.email}</td>
+            <td>${roleLabel}</td>
+            <td><strong>${mins} phút</strong> ${mins === 0 && u.role === 'student' ? '<span style="font-size:11px; color:var(--warning);">(Chưa học)</span>' : ''}</td>
+            <td>${statusHtml}</td>
+            <td>${actionHtml}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openBanModal(email, name) {
+      document.getElementById('banTargetEmail').value = email;
+      document.getElementById('banTargetName').value = name;
+      document.getElementById('banTargetText').textContent = `Thành viên bị kỷ luật: ${name} (${email})`;
+      document.getElementById('banModal').classList.add('open');
+    }
+
+    async function handleBanSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('banTargetEmail').value;
+      const name = document.getElementById('banTargetName').value;
+      const minutes = Number(document.getElementById('banDurationMinutes').value);
+      const reason = document.getElementById('banReasonText').value.trim();
+
+      const bannedUntil = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+      const { error } = await sb.from('app_users').update({
+        banned_until: bannedUntil,
+        ban_reason: reason
+      }).eq('email', email);
+
+      if (!error) {
+        showToast(`🔨 Đã khóa tài khoản ${name}!`);
+        await writeLog(`Admin đã BAN thành viên ${name} (${email}) trong ${minutes >= 1440 ? Math.round(minutes/1440) + ' ngày' : minutes + ' phút'}. Lý do: ${reason}`);
+        document.getElementById('banModal').classList.remove('open');
+        fetchAllUsers();
+      }
+    }
+
+    async function unbanUser(email, name) {
+      const { error } = await sb.from('app_users').update({
+        banned_until: null,
+        ban_reason: null
+      }).eq('email', email);
+
+      if (!error) {
+        showToast(`🔓 Đã gỡ lệnh Ban cho ${name}!`);
+        await writeLog(`Admin đã GỠ BAN cho thành viên ${name} (${email}).`);
+        fetchAllUsers();
+      }
+    }
+
+    // BIỂU ĐỒ VIDEO & HỌC LIỆU POPULAR (CHART.JS)
+    function renderPopularityChart() {
+      const canvas = document.getElementById('popularityChart');
+      if (!canvas) return;
+      const filterType = document.getElementById('chartFilterType').value;
+
+      let filtered = materials.filter(m => m.status === 'approved');
+      if (filterType === 'video') {
+        filtered = filtered.filter(m => m.type === 'video');
+      }
+
+      // Sắp xếp theo lượt xem giảm dần và lấy Top 6
+      const topItems = filtered
+        .sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
+        .slice(0, 6);
+
+      const labels = topItems.map(i => i.title.length > 26 ? i.title.substring(0, 26) + '...' : i.title);
+      const values = topItems.map(i => i.downloads || 0);
+
+      if (popularityChartInstance) {
+        popularityChartInstance.destroy();
+      }
+
+      popularityChartInstance = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels.length ? labels : ['Chưa có dữ liệu video'],
+          datasets: [{
+            label: 'Lượt xem & học tập',
+            data: values.length ? values : [0],
+            backgroundColor: [
+              'rgba(37, 99, 235, 0.85)',
+              'rgba(16, 185, 129, 0.85)',
+              'rgba(245, 158, 11, 0.85)',
+              'rgba(239, 68, 68, 0.85)',
+              'rgba(139, 92, 246, 0.85)',
+              'rgba(14, 165, 233, 0.85)'
+            ],
+            borderRadius: 8,
+            maxBarThickness: 54
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` 🔥 ${ctx.parsed.y} lượt xem/học`
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 }
+            }
+          }
+        }
+      });
     }
 
     // KẾT NỐI SUPABASE DỮ LIỆU CHÍNH
@@ -914,6 +1243,10 @@
       renderTeacherSubmissions();
       await fetchLogs();
       await fetchLeaderboard();
+      if (currentUser && currentUser.role === 'admin') {
+        await fetchAllUsers();
+        renderPopularityChart();
+      }
     }
 
     async function fetchLogs() {
@@ -936,12 +1269,22 @@
       const { data: { session } } = await sb.auth.getSession();
       if (session && session.user) {
         const u = session.user;
+        const banInfo = await checkIfUserIsBanned(u.email);
+        if (banInfo) {
+          await sb.auth.signOut();
+          currentUser = null;
+          showToast(`⛔ Tài khoản đang bị khóa đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
+          updateNavAndPanels();
+          return;
+        }
+
         const isAdmin = u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         currentUser = {
           email: u.email,
           name: u.user_metadata?.full_name || u.email.split('@')[0],
           role: isAdmin ? 'admin' : (u.user_metadata?.role || 'student')
         };
+        await syncUserToDirectory(currentUser.email, currentUser.name, currentUser.role);
       } else {
         currentUser = null;
       }
@@ -978,6 +1321,7 @@
       if (!currentUser || currentUser.role !== 'admin') return;
       const pendingItems = materials.filter(m => m.status === 'pending');
       document.getElementById('pendingCountText').textContent = pendingItems.length;
+      document.getElementById('pendingCountTab').textContent = pendingItems.length;
 
       const list = document.getElementById('pendingList');
       if (pendingItems.length === 0) {
@@ -1104,7 +1448,6 @@
       }
     }
 
-    // #7 CHỈNH SỬA TÀI LIỆU THEO PHÂN QUYỀN
     function canUserEdit(item) {
       if (!currentUser) return false;
       if (currentUser.role === 'admin') return true;
@@ -1141,7 +1484,6 @@
       }
     }
 
-    // THƯ VIỆN CÔNG KHAI
     function setFilter(type, btn) {
       currentFilter = type;
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -1202,7 +1544,6 @@
       }).join('');
     }
 
-    // #4 LƯU PHÚT ĐANG XEM + #8 TÀI LIỆU NỔI + #12 CỘNG PHÚT VÀO BẢNG XẾP HẠNG
     function convertYoutubeEmbed(url, startSec = 0) {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
       const match = url.match(regExp);
@@ -1252,7 +1593,6 @@
           playerBox.innerHTML = `<iframe src="${item.file_url}" allowfullscreen></iframe>`;
         }
 
-        // Bắt đầu đếm tiến độ xem & tích lũy phút học lên Bảng Xếp Hạng (#4 & #12)
         clearInterval(studyTimerInterval);
         let sessionSeconds = 0;
         studyTimerInterval = setInterval(() => {
@@ -1265,7 +1605,6 @@
           localStorage.setItem(`vid_progress_${userKey}_${item.id}`, Math.floor(currentVideoSeconds));
 
           sessionSeconds += 1;
-          // Cứ mỗi 60 giây học thực tế sẽ cộng 1 phút vào Bảng Vàng
           if (sessionSeconds % 60 === 0 && currentUser) {
             addStudyMinutes(1);
           }
@@ -1274,7 +1613,6 @@
         document.getElementById('floatingDocBox').classList.add('open');
         document.getElementById('videoModal').classList.add('open');
       } else {
-        // Khi tải tài liệu PDF cũng thưởng +2 phút học tập cho thành viên đăng nhập
         if (currentUser) addStudyMinutes(2);
         window.open(item.file_url, '_blank');
       }
@@ -1293,7 +1631,7 @@
       renderLibrary();
     }
 
-    // AUTHENTICATION
+    // AUTHENTICATION (CÓ CHẶN ĐĂNG NHẬP NẾU BỊ BAN)
     function openAuthModal(signUp) { isSignUpMode = signUp; renderAuthForm(); document.getElementById('authModal').classList.add('open'); }
     function toggleAuthMode() { isSignUpMode = !isSignUpMode; renderAuthForm(); }
     function renderAuthForm() {
@@ -1327,9 +1665,15 @@
             email, password, options: { data: { full_name: fullName, role: finalRole } }
           });
           if (error) throw error;
+          await syncUserToDirectory(email, fullName, finalRole);
           await writeLog(`Thành viên mới đăng ký: ${fullName} (${email}) — Vai trò: ${finalRole}.`);
           showToast("🎉 Tạo tài khoản thành công!");
         } else {
+          // Kiểm tra lệnh Ban trước khi cho đăng nhập
+          const banInfo = await checkIfUserIsBanned(email);
+          if (banInfo) {
+            throw new Error(`Tài khoản đang bị BAN đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
+          }
           const { error } = await sb.auth.signInWithPassword({ email, password });
           if (error) throw error;
           showToast("👋 Đăng nhập thành công!");

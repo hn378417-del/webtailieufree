@@ -1249,6 +1249,16 @@
       christmas: ['❄️', '🎄', '⛄', '✨'], tet: ['🌸', '🌼', '🧧', '✨']
     };
 
+    async const themeChannel = sb.channel('edushare-global-theme');
+
+    themeChannel
+      .on('broadcast', { event: 'change-theme' }, (payload) => {
+        if (payload.payload?.theme) {
+          setFestivalTheme(payload.payload.theme, false);
+        }
+      })
+      .subscribe();
+
     async function setFestivalTheme(theme, save = false) {
       document.documentElement.setAttribute('data-festival', theme);
       document.querySelectorAll('.theme-chip').forEach(btn => {
@@ -1268,19 +1278,16 @@
         canvas.appendChild(el);
       }
       if (save) {
+        await themeChannel.send({
+          type: 'broadcast',
+          event: 'change-theme',
+          payload: { theme }
+        });
         await sb.from('site_settings').upsert([{ key: 'festival_theme', value: theme }]);
         writeLog(`Admin đã đổi giao diện sự kiện toàn trang sang: ${theme.toUpperCase()}.`);
-        showToast("🎨 Đã đồng bộ giao diện sự kiện cho toàn bộ thiết bị!");
+        showToast("🎨 Đã đổi giao diện tức thì trên mọi thiết bị!");
       }
     }
-
-    sb.channel('theme-realtime-channel')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, (payload) => {
-        if (payload.new && payload.new.key === 'festival_theme') {
-          setFestivalTheme(payload.new.value, false);
-        }
-      })
-      .subscribe();
 
     let ytPlayer = null;
     let isSoundPlaying = false;

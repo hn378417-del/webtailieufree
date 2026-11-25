@@ -695,10 +695,11 @@
       <button onclick="toggleChatDrawer()" style="background:none; border:none; color:#FFF; cursor:pointer; font-size:16px;">✕</button>
     </div>
     <div class="chat-messages" id="chatMessagesBox"></div>
-    <form class="chat-input-bar" onsubmit="sendChatMessage(event)">
+    <div class="chat-input-bar">
       <input type="text" id="chatInput" placeholder="Nhập câu hỏi hoặc lời chào..." required />
-      <button type="submit" class="btn btn-primary btn-sm">Gửi</button>
-    </form>
+      <button type="button" onclick="sendChatMessage(e)"" class="btn btn-primary btn-sm">Gửi</button>
+      if (e && e.preventDefault) e.preventDefault()
+    </div>
   </div>
 
   <!-- MODAL PHÒNG THÍ NGHIỆM ẢO TƯƠNG TÁC (#9) -->

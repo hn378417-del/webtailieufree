@@ -698,7 +698,6 @@
     <div class="chat-input-bar">
       <input type="text" id="chatInput" placeholder="Nhập câu hỏi hoặc lời chào..." required />
       <button type="button" onclick="sendChatMessage(e)"" class="btn btn-primary btn-sm">Gửi</button>
-      if (e && e.preventDefault) e.preventDefault()
     </div>
   </div>
 
@@ -1393,11 +1392,25 @@
       }).join('');
       box.scrollTop = box.scrollHeight;
     }
+document.getElementById('chatInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+      }
+    });
 
     async function sendChatMessage() {
       if (!currentUser) { openAuthModal('login'); return; }
       const banInfo = await checkIfUserIsBanned(currentUser.email);
       if (banInfo) {
+        showToast(`⛔ Bạn đang bị khóa chat đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
+        return;
+      }
+
+      const input = document.getElementById('chatInput');
+```[cite: 18]
+
+Chèn xong đoạn bắt phím `Enter` ở trên rồi bấm **Commit changes** là gõ tin nhắn trong `#chatInput` rồi bấm **Enter** sẽ gửi ngay lập tức mà không bao giờ reload trang nữa!
         showToast(`⛔ Bạn đang bị khóa chat đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
         return;
       }

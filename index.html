@@ -701,6 +701,11 @@
     <div class="chat-messages" id="chatMessagesBox"></div>
     <div class="chat-input-bar">
       <input type="text" id="chatInput" placeholder="Nhập câu hỏi hoặc lời chào..." autocomplete="off" />
+      <div class="chat-input-bar">
+  <input type="text" id="chatInput" placeholder="Nhập câu hỏi hoặc lời chào..." autocomplete="off" />
+  <button type="button" class="btn btn-outline btn-sm" onclick="openChatGifPicker()" title="Gửi GIF / Ảnh" style="padding:0 10px;">🎞️</button>
+  <button type="button" class="btn btn-primary btn-sm" onclick="sendChatMessage()">Gửi</button>
+</div>
       <button type="button" class="btn btn-primary btn-sm" onclick="sendChatMessage()">Gửi</button>
     </div>
   </div>
@@ -1397,112 +1402,231 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
-   /// PHÒNG CHAT HỌC TẬP REALTIME (CHẶN ENTER RELOAD + THU HỒI + ADMIN GỠ)
-    async function fetchChatMessages() {
-      const { data, error } = await sb
-        .from('chat_messages')
-        .select('*')
-        .order('created_at', { ascending: true })
-        .limit(60);
+  /// PHÒNG CHAT HỌC TẬP REALTIME (GHIM + GIF + REACTION + THU HỒI + ADMIN GỠ)
+  let selectedChatGif = '';
 
-      const box = document.getElementById('chatMessagesBox');
-      if (!box) return;
-      if (error || !data) {
-        box.innerHTML = `<div style="padding:12px; font-size:12px; color:var(--muted);">Chưa tải được tin nhắn.</div>`;
-        return;
-      }
+  function openChatGifPicker() {
+    const sampleGifs = [
+      { label: '🐱 Mèo học bài', url: 'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif' },
+      { label: '🔥 Quá đỉnh', url: 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif' },
+      { label: '🎉 Chúc mừng', url: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
+      { label: '🤔 Suy ngẫm Vật lý', url: 'https://media.giphy.com/media/3o7buirYcmV5nSwIRW/giphy.gif' }
+    ];
+    let existing = document.getElementById('chatGifPopup');
+    if (existing) { existing.remove(); return; }
 
-      const isAdmin = !!(currentUser && currentUser.role === 'admin');
+    const popup = document.createElement('div');
+    popup.id = 'chatGifPopup';
+    popup.style.cssText = 'position:fixed; bottom:85px; right:24px; z-index:9999; background:var(--surface,#fff); border:1px solid var(--border,#e2e8f0); border-radius:14px; padding:12px; width:270px; box-shadow:0 12px 30px rgba(0,0,0,0.18);';
+    popup.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-weight:700; font-size:13px;">
+        <span>🎞️ Chọn GIF hoặc dán link ảnh</span>
+        <button type="button" onclick="document.getElementById('chatGifPopup')?.remove()" style="border:none; background:none; cursor:pointer; font-size:15px;">✕</button>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+        ${sampleGifs.map(g => `
+          <button type="button" onclick="selectChatGif('${g.url}')" style="border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#f8fafc; cursor:pointer; text-align:center;">
+            <img src="${g.url}" alt="${g.label}" style="width:100%; height:58px; object-fit:cover; border-radius:6px; display:block;" />
+            <span style="font-size:11px; font-weight:600; color:#334155;">${g.label}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div style="display:flex; gap:4px;">
+        <input id="customGifUrlInput" type="text" placeholder="Hoặc dán link .gif / .png..." style="flex:1; padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px;" />
+        <button type="button" onclick="selectChatGif(document.getElementById('customGifUrlInput').value.trim())" style="padding:6px 10px; border:none; border-radius:8px; background:var(--primary,#2563eb); color:#fff; font-weight:600; font-size:12px; cursor:pointer;">Chọn</button>
+      </div>
+    `;
+    document.body.appendChild(popup);
+  }
 
-      box.innerHTML = data.map(m => {
-        const isMe = !!(currentUser && (
-          (m.sender_email && currentUser.email && m.sender_email === currentUser.email) ||
-          (!m.sender_email && m.sender_name === currentUser.name)
-        ));
-        const isRecalled = m.content === '__RECALLED__';
-        const roleLabel = m.sender_role === 'admin'
-          ? '🛡️ Admin'
-          : (m.sender_role === 'teacher' ? '👨‍🏫 GV' : '🎓 HS');
-        const safeSenderName = String(m.sender_name || 'Thành viên').replace(/'/g, '');
-
-        let actionsHtml = '';
-        if (!isRecalled) {
-          if (isMe) {
-            actionsHtml += `<button type="button" onclick="recallChatMessage('${m.id}')" style="background:none; border:none; color:inherit; opacity:0.8; cursor:pointer; font-size:11px; text-decoration:underline; padding:0 4px;">Thu hồi</button>`;
-          }
-          if (isAdmin && !isMe) {
-            actionsHtml += `<button type="button" onclick="adminDeleteChatMessage('${m.id}', '${safeSenderName}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:11px; font-weight:700; padding:0 4px;">🗑️ Gỡ</button>`;
-          }
-        }
-
-        const bodyHtml = isRecalled
-          ? `<span style="font-style:italic; opacity:0.75;">🚫 Tin nhắn đã được thu hồi</span>`
-          : escapeHtml(m.content || '');
-
-        return `
-          <div class="chat-msg ${isMe ? 'me' : 'other'}">
-            <div class="chat-meta" style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-              <span>${roleLabel} • ${escapeHtml(m.sender_name || 'Người dùng')}</span>
-              <span>${actionsHtml}</span>
-            </div>
-            <div>${bodyHtml}</div>
-          </div>
-        `;
-      }).join('');
-
-      box.scrollTop = box.scrollHeight;
-    }
-
-    async function sendChatMessage() {
-      if (!currentUser) {
-        openAuthModal('login');
-        return;
-      }
-
-      const banInfo = await checkIfUserIsBanned(currentUser.email);
-      if (banInfo) {
-        showToast(`⛔ Bạn đang bị khóa chat đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
-        return;
-      }
-
-      const input = document.getElementById('chatInput');
-      if (!input) return;
-
-      const content = input.value.trim();
-      if (!content) return;
-
-      input.value = '';
+  function selectChatGif(url) {
+    if (!url) return;
+    selectedChatGif = url;
+    document.getElementById('chatGifPopup')?.remove();
+    const input = document.getElementById('chatInput');
+    if (input) {
+      input.placeholder = '🎞️ Đã đính kèm 1 GIF! Nhập thêm lời nhắn hoặc bấm Gửi...';
       input.focus();
+    }
+    showToast('🎞️ Đã đính kèm GIF! Bấm Gửi để đăng nhé.');
+  }
 
-      const { error } = await sb.from('chat_messages').insert([{
-        sender_name: currentUser.name,
-        sender_email: currentUser.email,
-        sender_role: currentUser.role,
-        content
-      }]);
+  async function togglePinChatMessage(msgId, currentPinned) {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'teacher')) return;
+    const { error } = await sb
+      .from('chat_messages')
+      .update({ is_pinned: !currentPinned })
+      .eq('id', msgId);
+    if (error) {
+      showToast('❌ Không thể ghim tin nhắn lúc này!');
+      return;
+    }
+    showToast(!currentPinned ? '📌 Đã ghim tin nhắn lên đầu!' : '📍 Đã bỏ ghim tin nhắn.');
+    await fetchChatMessages();
+  }
 
-      if (error) {
-        showToast("❌ Gửi tin nhắn thất bại, thử lại nhé!");
-        return;
+  async function toggleChatReaction(msgId, emoji) {
+    if (!currentUser) {
+      openAuthModal('login');
+      return;
+    }
+    const { data, error } = await sb
+      .from('chat_messages')
+      .select('reactions')
+      .eq('id', msgId)
+      .single();
+    if (error || !data) return;
+
+    const reactions = (data.reactions && typeof data.reactions === 'object') ? { ...data.reactions } : {};
+    const userKey = currentUser.email || currentUser.name;
+    const list = Array.isArray(reactions[emoji]) ? [...reactions[emoji]] : [];
+    const idx = list.indexOf(userKey);
+    if (idx > -1) list.splice(idx, 1);
+    else list.push(userKey);
+    reactions[emoji] = list;
+
+    await sb.from('chat_messages').update({ reactions }).eq('id', msgId);
+    await fetchChatMessages();
+  }
+
+  async function fetchChatMessages() {
+    const { data, error } = await sb
+      .from('chat_messages')
+      .select('*')
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(60);
+
+    const box = document.getElementById('chatMessagesBox');
+    if (!box) return;
+    if (error || !data) {
+      box.innerHTML = `<div style="padding:12px; font-size:12px; color:var(--muted);">Chưa tải được tin nhắn.</div>`;
+      return;
+    }
+
+    const isAdmin = !!(currentUser && currentUser.role === 'admin');
+    const canPin = !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'teacher'));
+
+    box.innerHTML = data.map(m => {
+      const isMe = !!(currentUser && (
+        (m.sender_email && currentUser.email && m.sender_email === currentUser.email) ||
+        (!m.sender_email && m.sender_name === currentUser.name)
+      ));
+      const isRecalled = m.content === '__RECALLED__';
+      const isPinned = !!m.is_pinned && !isRecalled;
+      const roleLabel = m.sender_role === 'admin'
+        ? '🛡️ Admin'
+        : (m.sender_role === 'teacher' ? '👩‍🏫 GV' : '🎓 HS');
+      const safeSenderName = String(m.sender_name || 'Thành viên').replace(/'/g, '');
+
+      let actionsHtml = '';
+      if (!isRecalled) {
+        if (canPin) {
+          actionsHtml += `<button type="button" onclick="togglePinChatMessage('${m.id}', ${isPinned})" style="background:none; border:none; color:${isPinned ? '#f59e0b' : 'inherit'}; cursor:pointer; font-size:11px; font-weight:700; padding:0 4px;">${isPinned ? '📌 Bỏ ghim' : '📌 Ghim'}</button>`;
+        }
+        if (isMe) {
+          actionsHtml += `<button type="button" onclick="recallChatMessage('${m.id}')" style="background:none; border:none; color:inherit; opacity:0.8; cursor:pointer; font-size:11px; text-decoration:underline; padding:0 4px;">Thu hồi</button>`;
+        }
+        if (isAdmin && !isMe) {
+          actionsHtml += `<button type="button" onclick="adminDeleteChatMessage('${m.id}', '${safeSenderName}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:11px; font-weight:700; padding:0 4px;">🗑️ Gỡ</button>`;
+        }
       }
 
-      await fetchChatMessages();
+      const pinBadgeHtml = isPinned
+        ? `<span style="background:linear-gradient(90deg,#f59e0b,#ec4899); color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:999px; margin-left:4px;">📌 Đã ghim</span>`
+        : '';
+
+      const gifHtml = (!isRecalled && m.gif_url)
+        ? `<div style="margin-top:6px;"><img src="${escapeHtml(m.gif_url)}" alt="GIF" loading="lazy" style="max-width:210px; max-height:170px; border-radius:10px; display:block; border:1px solid rgba(0,0,0,0.08);" /></div>`
+        : '';
+
+      const reactions = (m.reactions && typeof m.reactions === 'object') ? m.reactions : {};
+      const emojiSet = ['👍', '❤️', '😂', '🔥'];
+      const reactionBarHtml = isRecalled ? '' : `
+        <div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;">
+          ${emojiSet.map(em => {
+            const count = Array.isArray(reactions[em]) ? reactions[em].length : 0;
+            return `<button type="button" onclick="toggleChatReaction('${m.id}', '${em}')" style="border:1px solid rgba(148,163,184,0.35); background:${count > 0 ? 'rgba(59,130,246,0.12)' : 'transparent'}; color:inherit; border-radius:999px; padding:1px 7px; font-size:11px; cursor:pointer;">${em}${count > 0 ? ' ' + count : ''}</button>`;
+          }).join('')}
+        </div>
+      `;
+
+      const bodyHtml = isRecalled
+        ? `<span style="font-style:italic; opacity:0.75;">🚫 Tin nhắn đã được thu hồi</span>`
+        : `${m.content ? `<div>${escapeHtml(m.content)}</div>` : ''}${gifHtml}${reactionBarHtml}`;
+
+      const pinStyle = isPinned
+        ? 'border:2px solid #f59e0b; box-shadow:0 0 12px rgba(245,158,11,0.28);'
+        : '';
+
+      return `
+        <div class="chat-msg ${isMe ? 'me' : 'other'}" style="${pinStyle}">
+          <div class="chat-meta" style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+            <span>${roleLabel} • ${escapeHtml(m.sender_name || 'Người dùng')}${pinBadgeHtml}</span>
+            <span>${actionsHtml}</span>
+          </div>
+          <div>${bodyHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    box.scrollTop = box.scrollHeight;
+  }
+
+  async function sendChatMessage() {
+    if (!currentUser) {
+      openAuthModal('login');
+      return;
     }
 
-    async function recallChatMessage(msgId) {
-      if (!msgId || !confirm("Bạn muốn thu hồi tin nhắn này?")) return;
-      await sb.from('chat_messages').update({ content: '__RECALLED__' }).eq('id', msgId);
-      await fetchChatMessages();
+    const banInfo = await checkIfUserIsBanned(currentUser.email);
+    if (banInfo) {
+      showToast(`⛔ Bạn đang bị khóa chat đến ${banInfo.untilStr}. Lý do: ${banInfo.reason}`);
+      return;
     }
 
-    async function adminDeleteChatMessage(msgId, senderName) {
-      if (!currentUser || currentUser.role !== 'admin' || !msgId) return;
-      if (!confirm(`Xóa vĩnh viễn tin nhắn vi phạm của "${senderName}"?`)) return;
-      await sb.from('chat_messages').delete().eq('id', msgId);
-      writeLog(`Admin đã gỡ một tin nhắn vi phạm của ${senderName} trong phòng chat.`);
-      showToast("🗑️ Đã gỡ tin nhắn vi phạm!");
-      await fetchChatMessages();
+    const input = document.getElementById('chatInput');
+    if (!input) return;
+
+    const content = input.value.trim();
+    const gifUrl = selectedChatGif;
+    if (!content && !gifUrl) return;
+
+    input.value = '';
+    input.placeholder = 'Nhập tin nhắn thảo luận...';
+    selectedChatGif = '';
+    input.focus();
+
+    const { error } = await sb.from('chat_messages').insert([{
+      sender_name: currentUser.name,
+      sender_email: currentUser.email,
+      sender_role: currentUser.role,
+      content: content || '',
+      gif_url: gifUrl || null
+    }]);
+
+    if (error) {
+      showToast("❌ Gửi tin nhắn thất bại, thử lại nhé!");
+      return;
     }
+
+    await fetchChatMessages();
+  }
+
+  async function recallChatMessage(msgId) {
+    if (!msgId || !confirm("Bạn muốn thu hồi tin nhắn này?")) return;
+    await sb.from('chat_messages').update({ content: '__RECALLED__', gif_url: null, is_pinned: false }).eq('id', msgId);
+    await fetchChatMessages();
+  }
+
+  async function adminDeleteChatMessage(msgId, senderName) {
+    if (!currentUser || currentUser.role !== 'admin' || !msgId) return;
+    if (!confirm(`Xóa vĩnh viễn tin nhắn vi phạm của "${senderName}"?`)) return;
+    await sb.from('chat_messages').delete().eq('id', msgId);
+    writeLog(`Admin đã gỡ một tin nhắn vi phạm của ${senderName} trong phòng chat.`);
+    showToast("🗑️ Đã gỡ tin nhắn vi phạm!");
+    await fetchChatMessages();
+  }
 
     document.getElementById('chatInput')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {

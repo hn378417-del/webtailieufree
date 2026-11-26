@@ -1353,7 +1353,15 @@
       box.classList.toggle('open');
       if (box.classList.contains('open')) fetchChatMessages();
     }
-
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
    /// PHÒNG CHAT HỌC TẬP REALTIME (CHẶN ENTER RELOAD + THU HỒI + ADMIN GỠ)
     async function fetchChatMessages() {
       const { data, error } = await sb

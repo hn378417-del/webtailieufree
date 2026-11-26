@@ -1262,10 +1262,10 @@ const activeGeminiKey = (localStorage.getItem('edushare_gemini_key') || GEMINI_A
     function updateExamCountdown() {
       const now = new Date();
       let targetYear = now.getFullYear();
-      let examDate = new Date(targetYear, 5, 26, 7, 30, 0);
+    let examDate = new Date(targetYear, 5, 11, 7, 30, 0);
       if (now > examDate) {
         targetYear += 1;
-        examDate = new Date(targetYear, 5, 26, 7, 30, 0);
+     examDate = new Date(targetYear, 5, 11, 7, 30, 0);
       }
       const diff = examDate - now;
       document.getElementById('examTitleText').textContent = `🎯 Thời gian còn lại trước Kỳ thi THPTQG ${targetYear}:`;

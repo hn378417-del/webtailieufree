@@ -1033,7 +1033,7 @@ const activeGeminiKey = (localStorage.getItem('edushare_gemini_key') || GEMINI_A
           'x-goog-api-key': activeGeminiKey
         },
         body: JSON.stringify({
-          model: 'gemini-3.8-flash',
+          model: 'gemini-2.5-flash',
           input: `${systemInstruction}\n\nCâu hỏi của học sinh: ${question}`
         })
       });

@@ -1075,8 +1075,8 @@ const activeGeminiKey = (localStorage.getItem('edushare_gemini_key') || GEMINI_A
         || data.outputs?.[data.outputs.length - 1]?.text
         || "Mình chưa tìm thấy câu trả lời phù hợp, bạn thử hỏi lại nhé!";
         document.getElementById(loadingId).textContent = answer;
-      } "⏳ Máy chủ AI đang quá tải, bạn đợi 30 giây rồi bấm gửi lại nhé!" {
-        document.getElementById(loadingId).textContent = "❌ Lỗi AI: " + err.message + " (Kiểm tra lại nút 🔑 Key)";
+      } catch (err) {
+      document.getElementById(loadingId).textContent = "⏳ Máy chủ AI đang quá tải hoặc gặp sự cố, bạn đợi 30 giây rồi bấm gửi lại nhé!";
       } finally {
         btn.disabled = false;
         box.scrollTop = box.scrollHeight;
